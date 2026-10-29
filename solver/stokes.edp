@@ -1,0 +1,48 @@
+// n, nu, pressurePenalty, boundaryDofs and VelElement are set by the runner.
+// -nu*Delta u + grad p = f, div u = 0; u=0 on the boundary.
+mesh Th = square(n,n);
+fespace Vh(Th,VelElement);
+fespace Qh(Th,P1);
+Vh u1,u2,v1,v2;
+Qh p,q;
+func A=x^2*(1-x)^2;
+func Ap=2*x-6*x^2+4*x^3;
+func App=2-12*x+12*x^2;
+func Appp=-12+24*x;
+func B=y^2*(1-y)^2;
+func Bp=2*y-6*y^2+4*y^3;
+func Bpp=2-12*y+12*y^2;
+func Bppp=-12+24*y;
+func exactU1=A*Bp;
+func exactU2=-Ap*B;
+func exactP=sin(pi*x)*sin(pi*y)-4/(pi*pi);
+func f1=-nu*(App*Bp+A*Bppp)+pi*cos(pi*x)*sin(pi*y);
+func f2=nu*(Appp*B+Ap*Bpp)+pi*sin(pi*x)*cos(pi*y);
+problem Stokes([u1,u2,p],[v1,v2,q],solver=UMFPACK) =
+  int2d(Th,qforder=8)(nu*(dx(u1)*dx(v1)+dy(u1)*dy(v1)+dx(u2)*dx(v2)+dy(u2)*dy(v2))
+    -p*(dx(v1)+dy(v2))-q*(dx(u1)+dy(u2))-pressurePenalty*p*q)
+  -int2d(Th,qforder=8)(f1*v1+f2*v2)
+  +on(1,2,3,4,u1=0,u2=0);
+Stokes;
+real meanP=int2d(Th,qforder=8)(p)/int2d(Th)(1.);
+p=p-meanP;
+real errU0=sqrt(int2d(Th,qforder=8)((u1-exactU1)^2+(u2-exactU2)^2));
+real errU1=sqrt(int2d(Th,qforder=8)((dx(u1)-Ap*Bp)^2+(dy(u1)-A*Bpp)^2
+  +(dx(u2)+App*B)^2+(dy(u2)+Ap*Bp)^2));
+real errP0=sqrt(int2d(Th,qforder=8)((p-exactP)^2));
+real errDiv=sqrt(int2d(Th,qforder=8)((dx(u1)+dy(u2))^2));
+ofstream metrics("errors.csv"); metrics.precision(16);
+metrics << "n,h,ndof_total,ndof_velocity_free,ndof_pressure,l2_velocity,h1_velocity,l2_pressure,l2_divergence,pressure_mean" << endl;
+metrics << n << "," << 1./n << "," << 2*Vh.ndof+Qh.ndof << ","
+  << 2*(Vh.ndof-boundaryDofs) << "," << Qh.ndof << ","
+  << errU0 << "," << errU1 << "," << errP0 << "," << errDiv << ","
+  << int2d(Th,qforder=8)(p) << endl;
+if (exportFields) {
+  ofstream field("fields.csv"); field.precision(16);
+  field << "x,y,u1,u2,pressure,exact_u1,exact_u2,exact_pressure" << endl;
+  for(int i=0;i<Th.nv;i++) {
+    real xx=Th(i).x, yy=Th(i).y;
+    field << xx << "," << yy << "," << u1(xx,yy) << "," << u2(xx,yy) << "," << p(xx,yy) << ","
+      << exactU1(xx,yy) << "," << exactU2(xx,yy) << "," << exactP(xx,yy) << endl;
+  }
+}

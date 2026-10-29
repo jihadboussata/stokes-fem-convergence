@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints/
+.DS_Store
+.Rhistory
+.RData
+.Rproj.user/
+data/raw/
+results/runs/
+results/run.edp
+results/solver.log

@@ -1,0 +1,12 @@
+{
+  "meshes": [
+    10,
+    20,
+    40,
+    80
+  ],
+  "viscosity": 1.0,
+  "pressure_penalty": 1e-10,
+  "quadrature_order": 8,
+  "ndof_total_definition": "2 * scalar velocity space dimension + pressure space dimension, including boundary values"
+}
